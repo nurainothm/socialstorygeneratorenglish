@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>My Social Story Generator</title>
+  <title>My Social Story English Version</title>
   
   <meta name="theme-color" content="#0284c7">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="description" content="AI Social Story Generator for Children with Autism (ASD)">
+  <meta name="description" content="AI Social Story Generator for Children with Autism (ASD) - English Version">
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -81,7 +81,7 @@
     .brand-title {
       color: var(--primary-blue);
       font-weight: 800;
-      font-size: 1.35rem;
+      font-size: 1.25rem;
     }
 
     .custom-card {
@@ -209,7 +209,7 @@
     <div class="container max-w-4xl d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-2">
         <span class="fs-3">📖</span>
-        <span class="brand-title">My Social Story</span>
+        <span class="brand-title">My Social Story English Version</span>
       </div>
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-secondary btn-sm rounded-pill" onclick="toggleDyslexiaMode()" title="Dyslexia Mode">
@@ -231,7 +231,7 @@
       <div class="custom-card p-4 p-md-5 mx-auto shadow-lg my-4" style="max-width: 450px;">
         <div class="text-center mb-4">
           <span class="fs-1">📖</span>
-          <h3 class="fw-bold text-primary mt-2">My Social Story</h3>
+          <h3 class="fw-bold text-primary mt-2">My Social Story English Version</h3>
           <p class="text-muted small">Please log in or register an account to start generating Social Stories.</p>
         </div>
 
@@ -277,8 +277,8 @@
     <section id="view-home" class="app-view d-none">
       <div class="custom-card p-4 p-md-5 mb-4 text-center bg-gradient position-relative overflow-hidden" style="background: linear-gradient(135deg, var(--light-blue), var(--pastel-green));">
         <div class="mb-3 fs-1">🧩✨</div>
-        <h1 class="fw-bold mb-2 text-primary">Real-Photo Social Story Generator</h1>
-        <p class="text-secondary fs-6 mb-4">Helping children with Autism (ASD) understand social situations, emotions, and routine changes using real photos & clear visual aids.</p>
+        <h1 class="fw-bold mb-2 text-primary">My Social Story English Version</h1>
+        <p class="text-secondary fs-6 mb-4">Helping children with Autism (ASD) understand social situations, emotions, and routine changes using clear visual aids.</p>
         <button onclick="showView('generate')" class="btn btn-primary btn-lg rounded-pill px-4 py-3 fw-bold shadow">
           <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Create a Story Now
         </button>
@@ -288,8 +288,8 @@
         <div class="col-6 col-md-3">
           <div class="custom-card p-3 text-center">
             <i class="fa-solid fa-image fs-3 text-primary mb-2"></i>
-            <h6 class="fw-bold mb-0">Real Photos</h6>
-            <small class="text-muted">Clear Visual Context</small>
+            <h6 class="fw-bold mb-0">Visual Aids</h6>
+            <small class="text-muted">Clear Context</small>
           </div>
         </div>
         <div class="col-6 col-md-3">
@@ -443,7 +443,7 @@
             <!-- Submit Button -->
             <div class="col-12 mt-4 text-center">
               <button type="submit" id="btn-generate-submit" class="btn btn-primary btn-lg rounded-pill px-5 py-3 fw-bold shadow w-100">
-                ✨ Generate Story & Real Photos
+                ✨ Generate Story
               </button>
             </div>
 
@@ -500,7 +500,7 @@
         </div>
 
         <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-          <div class="text-muted small"><i class="fa-solid fa-info-circle me-1"></i>Use ⬆️ ⬇️ to reorder, 📷 to change photo.</div>
+          <div class="text-muted small"><i class="fa-solid fa-info-circle me-1"></i>Use ⬆️ ⬇️ to reorder, 📷 to change image.</div>
           <button class="btn btn-outline-primary btn-sm rounded-pill font-monospace" onclick="addNewSentence()">
             <i class="fa-solid fa-plus me-1"></i>Add New Sentence
           </button>
@@ -639,7 +639,7 @@
 
   <!-- APPLICATION LOGIC SCRIPT -->
   <script>
-    // 1. FIREBASE CONFIGURATION (UPDATED WITH NEW APP ID)
+    // 1. FIREBASE CONFIGURATION
     const firebaseConfig = {
       apiKey: "AIzaSyDBQMTyc23M16ihIpQTOZbUhXzpFlTv7OI",
       authDomain: "social-story-generator-b807a.firebaseapp.com",
@@ -909,7 +909,7 @@
       window.scrollTo(0, 0);
     }
 
-    // 4. GENERATE REAL-PHOTO SOCIAL STORY ENGINE
+    // 4. GENERATE SOCIAL STORY ENGINE
     function handleGenerateStory(e) {
       e.preventDefault();
 
@@ -928,13 +928,13 @@
 
       const submitBtn = document.getElementById('btn-generate-submit');
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating Story & Real Photos...';
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating Story...';
 
       setTimeout(() => {
         const storyData = generateSocialStoryByLanguageLevel({ nama, umur, bahasa, tahap, situasi, emosi, nilai });
         renderStoryResult(storyData);
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '✨ Generate Story & Real Photos';
+        submitBtn.innerHTML = '✨ Generate Story';
       }, 1000);
     }
 
@@ -947,7 +947,7 @@
       }
     }
 
-    // MAP SITUATION TO KEYWORDS FOR UNSPLASH REAL PHOTO ENGINE
+    // MAP SITUATION TO KEYWORDS FOR UNSPLASH IMAGE ENGINE
     function getEnglishKeywordForSituation(situasiText) {
       const lower = situasiText.toLowerCase();
       if (lower.includes('school')) return 'school,classroom,students';
@@ -968,7 +968,7 @@
       return 'family,children,daily-life';
     }
 
-    // GENERATE RELIABLE REAL PHOTO IMAGE URL
+    // GENERATE RELIABLE IMAGE URL
     function generateRealPhotoUrl(sentenceText, situasi, index) {
       const keyword = getEnglishKeywordForSituation(situasi);
       const sig = Math.floor(Math.random() * 100) + index;
@@ -1049,7 +1049,7 @@
     function getBehaviorTips(nama, situasi, nilai, tahap) {
       const childName = nama || 'your child';
       return {
-        intro: `Create a quiet environment free from digital distractions or loud background noises. Read this story together with ${childName} when they are feeling relaxed and comfortable. Avoid introducing the story during a meltdown or heightened sensory distress. Sit comfortably alongside ${childName} and point to each real photo step by step.`
+        intro: `Create a quiet environment free from digital distractions or loud background noises. Read this story together with ${childName} when they are feeling relaxed and comfortable. Avoid introducing the story during a meltdown or heightened sensory distress. Sit comfortably alongside ${childName} and point to each image step by step.`
       };
     }
 
@@ -1529,7 +1529,7 @@
         const titleText = currentActiveStory.title || `Social Story for ${currentActiveStory.nama}`;
         const text = `*${titleText}*\nSituation: ${currentActiveStory.situasi}\n\n` + 
           currentActiveStory.sentences.map((s, idx) => `${idx + 1}. ${s.text}`).join('\n') +
-          `\n\nGenerated with My Social Story Generator App.`;
+          `\n\nGenerated with My Social Story English Version App.`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
       }
     }
