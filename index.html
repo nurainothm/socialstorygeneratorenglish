@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Social Story Generator - Visual Stories for Autism</title>
+
+  <meta name="theme-color" content="#0284c7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="A modern AI-powered Social Story Generator tailored for children with Autism (ASD) in Malaysia.">
+
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Firebase Compatibility SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            },
+            pastel: {
+              green: '#dcfce7',
+              blue: '#e0f2fe',
+              yellow: '#fef9c3',
+              purple: '#f3e8ff',
+              rose: '#ffe4e6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lexend+Deca:wght@400;500;600;700&display=swap');
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body.dyslexia-mode {
+      font-family: 'Comic Sans MS', 'Lexend Deca', sans-serif !important;
+      letter-spacing: 0.05em;
+      word-spacing: 0.12em;
+      line-height: 1.8;
+    }
+
+    .word-highlight {
+      background-color: #fef08a;
+      color: #0f172a;
+      padding: 0 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    /* Print Formatting Rules */
+    @media print {
+      body { background: white !important; color: black !important; padding: 0 !important; }
+      .no-print, header, nav, button, .action-bar { display: none !important; }
+      .printable-area { width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      .story-card-page { break-inside: avoid; page-break-after: always; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+      .story-card-page img { max-height: 300px !important; object-fit: contain !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen pb-20 md:pb-10 transition-colors duration-200">
+
+  <!-- TOP APP HEADER -->
+  <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 no-print">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showView('home')">
+        <div class="w-10 h-10 rounded-2xl bg-brand-500 text-white flex items-center justify-center font-bold text-xl shadow-md">
+          🧩
+        </div>
+        <div>
+          <h1 class="font-extrabold text-lg text-brand-600 dark:text-brand-50 leading-tight">Social Story Generator</h1>
+          <p class="text-[10px] font-semibold text-slate-400 tracking-wider uppercase hidden sm:block">Autism-Friendly Support Tool</p>
+        </div>
+      </div>
+
+      <!-- Quick Accessibility Toggles & User Info -->
+      <div class="flex items-center gap-2">
+        <button onclick="toggleDyslexiaMode()" title="Dyslexia Friendly Font" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition text-sm">
+          <i class="fa-solid fa-font"></i>
+        </button>
+        <button onclick="toggleDarkMode()" title="Dark Mode" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition text-sm">
+          <i class="fa-solid fa-moon" id="dark-icon"></i>
+        </button>
+        <div id="auth-header-btn" class="ml-1"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="max-w-5xl mx-auto px-4 py-6">
+
+    <!-- VIEW 0: AUTH / LOGIN -->
+    <section id="view-login" class="app-view hidden">
+      <div class="max-w-md mx-auto bg-white dark:bg-slate-800 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 shadow-xl my-6">
+        <div class="text-center mb-6">
+          <div class="text-5xl mb-3">📖</div>
+          <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Welcome Back</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sign in to save, sync, and print your visual social stories.</p>
+        </div>
+
+        <div class="flex bg-slate-100 dark:bg-slate-700/50 p-1 rounded-2xl mb-6">
+          <button type="button" class="flex-1 py-2 text-xs font-bold rounded-xl transition bg-white dark:bg-slate-800 shadow text-brand-600" id="tab-btn-login" onclick="switchAuthTab('login')">Log In</button>
+          <button type="button" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500" id="tab-btn-register" onclick="switchAuthTab('register')">Register</button>
+        </div>
+
+        <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
+            <input type="email" id="auth-email" required placeholder="therapist@clinic.my" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Password</label>
+            <input type="password" id="auth-password" required placeholder="••••••••" minlength="6" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+
+          <div id="auth-error" class="hidden p-3 rounded-xl bg-rose-50 text-rose-600 text-xs font-medium border border-rose-200"></div>
+
+          <button type="submit" id="btn-auth-submit" class="w-full py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg transition text-sm">
+            Sign In
+          </button>
+        </form>
+
+        <div class="relative my-6 text-center">
+          <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+          <span class="relative bg-white dark:bg-slate-800 px-3 text-[11px] uppercase tracking-wider font-semibold text-slate-400">or</span>
+        </div>
+
+        <button onclick="loginGuest()" class="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold rounded-xl transition text-xs flex items-center justify-center gap-2">
+          <i class="fa-solid fa-user-astronaut text-brand-500"></i> Continue as Guest (Local Mode)
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 1: HOME -->
+    <section id="view-home" class="app-view space-y-8">
+      <!-- HERO BANNER -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 via-brand-600 to-teal-500 p-8 text-white shadow-xl">
+        <div class="max-w-xl space-y-4 relative z-10">
+          <span class="inline-block px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold tracking-wide uppercase">Built for Therapists & Parents</span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Create Visual Social Stories in Minutes</h2>
+          <p class="text-brand-100 text-sm leading-relaxed">Help children with Autism Spectrum Disorder navigate new situations, regulate emotions, and feel confident with custom storybooks.</p>
+          <div class="flex flex-wrap gap-3 pt-2">
+            <button onclick="showView('generator')" class="px-6 py-3.5 bg-white text-brand-700 hover:bg-brand-50 font-extrabold rounded-2xl shadow-lg transition transform active:scale-95 flex items-center gap-2 text-sm">
+              <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i> Create Story Now
+            </button>
+            <button onclick="showView('templates')" class="px-6 py-3.5 bg-brand-700/60 hover:bg-brand-700 text-white font-bold rounded-2xl border border-white/20 transition text-sm flex items-center gap-2">
+              <i class="fa-solid fa-layer-group"></i> Templates
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN MODULE TILES -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div onclick="showView('generator')" class="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-400 transition cursor-pointer shadow-sm group">
+          <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-900/40 text-brand-500 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-robot"></i>
+          </div>
+          <h3 class="font-bold text-sm text-slate-900 dark:text-white">AI Story Generator</h3>
+          <p class="text-xs text-slate-400 mt-1">Generate story & illustrations with AI</p>
+        </div>
+
+        <div onclick="showView('templates')" class="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-400 transition cursor-pointer shadow-sm group">
+          <div class="w-12 h-12 rounded-2xl bg-pastel-green dark:bg-emerald-900/40 text-emerald-600 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <h3 class="font-bold text-sm text-slate-900 dark:text-white">Ready Templates</h3>
+          <p class="text-xs text-slate-400 mt-1">Pre-made Malaysian scenarios</p>
+        </div>
+
+        <div onclick="showView('builder')" class="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-400 transition cursor-pointer shadow-sm group">
+          <div class="w-12 h-12 rounded-2xl bg-pastel-yellow dark:bg-amber-900/40 text-amber-600 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-pen-ruler"></i>
+          </div>
+          <h3 class="font-bold text-sm text-slate-900 dark:text-white">Manual Builder</h3>
+          <p class="text-xs text-slate-400 mt-1">Build slide by slide manually</p>
+        </div>
+
+        <div onclick="showView('library')" class="p-5 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-400 transition cursor-pointer shadow-sm group">
+          <div class="w-12 h-12 rounded-2xl bg-pastel-purple dark:bg-purple-900/40 text-purple-600 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition">
+            <i class="fa-solid fa-box-archive"></i>
+          </div>
+          <h3 class="font-bold text-sm text-slate-900 dark:text-white">My Library</h3>
+          <p class="text-xs text-slate-400 mt-1">Saved social storybooks</p>
+        </div>
+      </div>
+
+      <!-- DASHBOARD SUMMARY & RECENT STORIES -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-brand-500"></i> Recently Created Stories
+          </h3>
+          <button onclick="showView('library')" class="text-xs font-bold text-brand-600 hover:underline">View All</button>
+        </div>
+        <div id="home-recent-stories" class="grid sm:grid-cols-2 gap-4"></div>
+      </div>
+
+      <!-- THERAPIST TOOLKIT / SUPPORT WIDGETS -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+        <h3 class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-heart-pulse text-rose-500"></i> Integrated Visual Support Toolkit
+        </h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button onclick="openEmotionModal()" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl text-left hover:bg-brand-50 dark:hover:bg-slate-700 transition">
+            <span class="text-2xl">😊</span>
+            <div class="font-bold text-xs mt-1 text-slate-800 dark:text-slate-200">Emotions Check</div>
+          </button>
+          <button onclick="openVisualCardsModal()" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl text-left hover:bg-brand-50 dark:hover:bg-slate-700 transition">
+            <span class="text-2xl">🛑</span>
+            <div class="font-bold text-xs mt-1 text-slate-800 dark:text-slate-200">Visual Cards</div>
+          </button>
+          <button onclick="openTokenBoardModal()" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl text-left hover:bg-brand-50 dark:hover:bg-slate-700 transition">
+            <span class="text-2xl">⭐</span>
+            <div class="font-bold text-xs mt-1 text-slate-800 dark:text-slate-200">Token Board</div>
+          </button>
+          <button onclick="openScheduleModal()" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl text-left hover:bg-brand-50 dark:hover:bg-slate-700 transition">
+            <span class="text-2xl">🗓️</span>
+            <div class="font-bold text-xs mt-1 text-slate-800 dark:text-slate-200">Visual Schedule</div>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: AI STORY GENERATOR MODULE -->
+    <section id="view-generator" class="app-view hidden">
+      <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8 space-y-6 shadow-sm">
+        <div class="border-b border-slate-100 dark:border-slate-700 pb-4">
+          <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles text-brand-500"></i> AI Social Story Generator
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Fills out the profile parameters to craft Carol Gray compliant social narratives.</p>
+        </div>
+
+        <form id="form-ai-story" onsubmit="handleGenerateAIStory(event)" class="space-y-6">
+          <!-- Child Profile -->
+          <div class="grid sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Child's Name *</label>
+              <input type="text" id="gen-child-name" required placeholder="e.g. Adam" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Age</label>
+              <input type="number" id="gen-child-age" value="6" min="2" max="18" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Gender / Pronouns</label>
+              <select id="gen-child-gender" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                <option value="Boy (He/Him)">Boy (He/Him)</option>
+                <option value="Girl (She/Her)">Girl (She/Her)</option>
+                <option value="They/Them">They/Them</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Language & Reading Capabilities -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Language Complexity</label>
+              <select id="gen-language-level" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                <option value="Very Simple">Very Simple (Single key action per page)</option>
+                <option value="Simple" selected>Simple (Short predictable sentences)</option>
+                <option value="Moderate">Moderate (Full descriptive contexts)</option>
+                <option value="Advanced">Advanced (Detailed narrative & coping strategies)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Perspective & Tone</label>
+              <div class="grid grid-cols-2 gap-2">
+                <select id="gen-perspective" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm outline-none">
+                  <option value="First Person (I/Me)" selected>First Person (I/Me)</option>
+                  <option value="Third Person (He/She)">Third Person</option>
+                </select>
+                <select id="gen-tone" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm outline-none">
+                  <option value="Calm & Reassuring" selected>Calm</option>
+                  <option value="Encouraging & Positive">Encouraging</option>
+                  <option value="Motivating">Motivating</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Situation / Scenario Selection -->
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Social Situation / Setting</label>
+            <select id="gen-situation-preset" onchange="handlePresetSituationChange(this.value)" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none mb-2">
+              <optgroup label="Malaysian Local Settings">
+                <option value="Going to the Dentist in Klinik Kesihatan">Going to the Dentist (Klinik Kesihatan)</option>
+                <option value="Riding the LRT / MRT train">Riding the LRT / MRT Train</option>
+                <option value="Eating at a Food Court or Hawker Center">Eating at a Food Court</option>
+                <option value="Visiting the Mosque or Surau">Visiting the Mosque / Surau</option>
+                <option value="Going to the Night Market (Pasar Malam)">Going to Pasar Malam</option>
+              </optgroup>
+              <optgroup label="Common Routine Scenarios">
+                <option value="Going to School" selected>Going to School</option>
+                <option value="Getting a Haircut">Getting a Haircut</option>
+                <option value="Going to the Doctor">Going to the Doctor</option>
+                <option value="Waiting in Line and Taking Turns">Waiting in Line & Taking Turns</option>
+                <option value="Handling Loud Noises">Handling Loud Noises</option>
+                <option value="Sharing Toys with Friends">Sharing Toys with Friends</option>
+                <option value="Brushing Teeth at Night">Brushing Teeth</option>
+                <option value="Unexpected Changes in Schedule">Unexpected Changes in Schedule</option>
+              </optgroup>
+              <option value="CUSTOM">-- Custom Scenario (Type Your Own) --</option>
+            </select>
+
+            <input type="text" id="gen-situation-custom" placeholder="e.g. Taking a blood test at Hospital Serdang" class="hidden w-full px-4 py-2.5 rounded-xl border border-brand-300 dark:border-brand-700 dark:bg-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+          </div>
+
+          <!-- Story Length & Visual Style -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Story Length</label>
+              <select id="gen-story-pages" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm outline-none">
+                <option value="5">5 Pages (Short Routine)</option>
+                <option value="8" selected>8 Pages (Standard Story)</option>
+                <option value="10">10 Pages (Comprehensive)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Illustration Art Style</label>
+              <select id="gen-art-style" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white text-sm outline-none">
+                <option value="realistic photo style">Realistic Stock Photos (Real Life)</option>
+                <option value="cute 2d autism friendly vector art" selected>Soft Flat Vector Illustration</option>
+                <option value="friendly cartoon storybook">Friendly Cartoon</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" id="btn-submit-generator" class="w-full py-4 bg-brand-500 hover:bg-brand-600 text-white font-extrabold rounded-2xl shadow-lg transition text-base flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Social Story & Visuals
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW 3: TEMPLATES MODULE -->
+    <section id="view-templates" class="app-view hidden space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Ready-Made Templates</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Pre-written social stories tailored to Malaysian contexts & everyday situations.</p>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="template-search" onkeyup="filterTemplates()" placeholder="Search templates..." class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs outline-none">
+        </div>
+      </div>
+
+      <div id="templates-grid" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- VIEW 4: MANUAL BUILDER MODULE -->
+    <section id="view-builder" class="app-view hidden space-y-6">
+      <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm space-y-4">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-pen-ruler text-amber-500"></i> Manual Story Builder
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Customise slide text, reorder cards, and upload images.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="addBuilderPage()" class="px-3 py-2 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 font-bold rounded-xl text-xs hover:bg-brand-100 transition">
+              <i class="fa-solid fa-plus me-1"></i> Add Page
+            </button>
+            <button onclick="saveBuilderStory()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow transition">
+              <i class="fa-solid fa-floppy-disk me-1"></i> Save Story
+            </button>
+          </div>
+        </div>
+
+        <!-- Meta Editor -->
+        <div class="grid sm:grid-cols-2 gap-4">
+          <input type="text" id="builder-title" placeholder="Story Title (e.g. Adam Goes to the Clinic)" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-sm font-bold">
+          <input type="text" id="builder-child" placeholder="Child's Name" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-sm">
+        </div>
+
+        <!-- Pages Stack -->
+        <div id="builder-pages-list" class="space-y-4 pt-2"></div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: MY LIBRARY MODULE -->
+    <section id="view-library" class="app-view hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900 dark:text-white">My Story Library</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">All your saved and customized social stories.</p>
+        </div>
+        <button onclick="showView('generator')" class="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs shadow transition">
+          + New Story
+        </button>
+      </div>
+
+      <div id="library-container" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- VIEW 6: STORY READER / DISPLAY -->
+    <section id="view-story-display" class="app-view hidden space-y-6">
+      <!-- Top Reader Toolbar -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-4 no-print flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <button onclick="showView('library')" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-200">
+          <i class="fa-solid fa-arrow-left me-1"></i> Back
+        </button>
+
+        <!-- TTS Control Bar -->
+        <div class="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <button onclick="playTTSSpeech()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow">
+            <i class="fa-solid fa-volume-high"></i> Read Story
+          </button>
+          <button onclick="stopTTSSpeech()" class="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 text-xs">
+            <i class="fa-solid fa-stop"></i>
+          </button>
+          <select id="tts-speed" class="text-xs bg-transparent dark:text-white font-bold outline-none border-l dark:border-slate-700 pl-2">
+            <option value="0.75">Slow</option>
+            <option value="1" selected>Normal Speed</option>
+          </select>
+        </div>
+
+        <!-- Export & Share Actions -->
+        <div class="flex items-center gap-2">
+          <button onclick="toggleFavoriteStory()" id="btn-story-fav" class="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-rose-500">
+            <i class="fa-regular fa-heart"></i>
+          </button>
+          <button onclick="window.print()" class="px-3 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow">
+            <i class="fa-solid fa-print me-1"></i> Print / PDF
+          </button>
+          <button onclick="shareWhatsAppStory()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow">
+            <i class="fa-brands fa-whatsapp"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Story Pages Area -->
+      <div id="printable-story-area" class="printable-area space-y-6">
+        <div class="text-center p-6 bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700">
+          <span class="inline-block px-3 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 rounded-full text-xs font-bold mb-2" id="display-badge-scenario">Scenario</span>
+          <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white" id="display-story-title">Story Title</h2>
+          <p class="text-xs text-slate-400 mt-1" id="display-story-meta">Prepared for Adam</p>
+        </div>
+
+        <div id="display-pages-container" class="space-y-6"></div>
+      </div>
+
+      <!-- Carol Gray Social Story Structure Tip Footer -->
+      <div class="no-print bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-3xl p-5 text-xs text-emerald-900 dark:text-emerald-200 space-y-1">
+        <div class="font-bold text-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-lightbulb text-amber-500"></i> How to Introduce This Social Story
+        </div>
+        <p class="leading-relaxed">Read this story together in a calm, quiet environment prior to the actual event. Point to each image as you read. Avoid using the story as a punishment during a meltdown.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION BAR FOR MOBILE -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-around py-2.5 z-40 sm:hidden no-print">
+    <button onclick="showView('home')" class="flex flex-col items-center text-slate-400 font-bold text-[10px]" id="nav-btn-home">
+      <i class="fa-solid fa-house text-lg mb-0.5"></i> Home
+    </button>
+    <button onclick="showView('generator')" class="flex flex-col items-center text-slate-400 font-bold text-[10px]" id="nav-btn-generator">
+      <i class="fa-solid fa-wand-magic-sparkles text-lg mb-0.5"></i> Generator
+    </button>
+    <button onclick="showView('templates')" class="flex flex-col items-center text-slate-400 font-bold text-[10px]" id="nav-btn-templates">
+      <i class="fa-solid fa-layer-group text-lg mb-0.5"></i> Templates
+    </button>
+    <button onclick="showView('library')" class="flex flex-col items-center text-slate-400 font-bold text-[10px]" id="nav-btn-library">
+      <i class="fa-solid fa-bookmark text-lg mb-0.5"></i> Library
+    </button>
+  </nav>
+
+  <!-- MODAL: EMOTIONS TOOLKIT -->
+  <div id="modal-emotions" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center">
+        <h3 class="font-extrabold text-lg text-slate-900 dark:text-white">Emotion Regulation Support</h3>
+        <button onclick="closeModal('modal-emotions')" class="text-slate-400 text-xl font-bold">&times;</button>
+      </div>
+      <p class="text-xs text-slate-500">Tap an emotion icon to hear its simple explanation.</p>
+      <div class="grid grid-cols-3 gap-3" id="emotions-grid-container"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: VISUAL CARDS -->
+  <div id="modal-visual-cards" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center">
+        <h3 class="font-extrabold text-lg text-slate-900 dark:text-white">Visual Cue Cards (PECS Style)</h3>
+        <button onclick="closeModal('modal-visual-cards')" class="text-slate-400 text-xl font-bold">&times;</button>
+      </div>
+      <div class="grid grid-cols-3 sm:grid-cols-4 gap-3" id="visual-cards-grid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: TOKEN BOARD REWARD -->
+  <div id="modal-token-board" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 space-y-6 text-center">
+      <div class="flex justify-between items-center">
+        <h3 class="font-extrabold text-lg text-slate-900 dark:text-white">⭐ Token Reward Board</h3>
+        <button onclick="closeModal('modal-token-board')" class="text-slate-400 text-xl font-bold">&times;</button>
+      </div>
+      <p class="text-xs text-slate-500">Tap stars to award tokens for reading or good behaviour!</p>
+      <div class="flex justify-center gap-3" id="token-stars-box">
+        <button onclick="toggleStar(0)" class="text-4xl text-slate-300 dark:text-slate-700 transition transform hover:scale-110">★</button>
+        <button onclick="toggleStar(1)" class="text-4xl text-slate-300 dark:text-slate-700 transition transform hover:scale-110">★</button>
+        <button onclick="toggleStar(2)" class="text-4xl text-slate-300 dark:text-slate-700 transition transform hover:scale-110">★</button>
+        <button onclick="toggleStar(3)" class="text-4xl text-slate-300 dark:text-slate-700 transition transform hover:scale-110">★</button>
+        <button onclick="toggleStar(4)" class="text-4xl text-slate-300 dark:text-slate-700 transition transform hover:scale-110">★</button>
+      </div>
+      <div id="token-congrats" class="hidden font-extrabold text-emerald-600 text-sm animate-bounce">
+        🎉 Great Job! You earned all 5 stars!
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC & FIREBASE -->
+  <script>
+    // 1. FIREBASE CONFIGURATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyDBQMTyc23M16ihIpQTOZbUhXzpFlTv7OI",
+      authDomain: "social-story-generator-b807a.firebaseapp.com",
+      databaseURL: "https://social-story-generator-b807a-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "social-story-generator-b807a",
+      storageBucket: "social-story-generator-b807a.firebasestorage.app",
+      messagingSenderId: "361478724767",
+      appId: "1:361478724767:web:c3cc0ed04798d4cf5896aa"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // Global State
+    let currentUser = null;
+    let storiesLibrary = [];
+    let currentStory = null;
+    let authTabMode = 'login';
+
+    // Built-in Templates Data (Malaysian Contexts Included)
+    const PRESET_TEMPLATES = [
+      {
+        id: 'tmpl_dentist_kk',
+        title: 'Going to the Dentist (Klinik Kesihatan)',
+        scenario: 'Going to the Dentist in Klinik Kesihatan',
+        category: 'Health',
+        pages: [
+          { text: "Sometimes I visit Klinik Kesihatan to check my teeth.", img: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&auto=format&fit=crop" },
+          { text: "The dentist wears a mask and gloves to keep me safe.", img: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=600&auto=format&fit=crop" },
+          { text: "I sit back in a big comfortable chair that moves up and down.", img: "https://images.unsplash.com/photo-1598256989800-fe5f95da9787?w=600&auto=format&fit=crop" },
+          { text: "The dentist uses a small light to shine on my smile.", img: "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?w=600&auto=format&fit=crop" },
+          { text: "I open my mouth wide like a lion. Ahhh!", img: "https://images.unsplash.com/photo-1571772996211-2f02c9727629?w=600&auto=format&fit=crop" },
+          { text: "The dentist cleans my teeth gently. It keeps my teeth strong.", img: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=600&auto=format&fit=crop" },
+          { text: "When we are finished, I spit out the water and rinse.", img: "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&auto=format&fit=crop" },
+          { text: "I did a great job keeping my mouth open!", img: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop" }
+        ]
+      },
+      {
+        id: 'tmpl_lrt_mrt',
+        title: 'Riding the LRT / MRT Train',
+        scenario: 'Riding the LRT / MRT train',
+        category: 'Outings',
+        pages: [
+          { text: "Today I am going on a journey on the LRT train.", img: "https://images.unsplash.com/photo-1517649763962-0c623266010b?w=600&auto=format&fit=crop" },
+          { text: "We tap our Touch 'n Go card at the gate. Beep!", img: "https://images.unsplash.com/photo-1557223562-6c77ef16210f?w=600&auto=format&fit=crop" },
+          { text: "I hold hands with my family while waiting behind the yellow line.", img: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=600&auto=format&fit=crop" },
+          { text: "The train doors open smoothly. I wait for people to step out first.", img: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=600&auto=format&fit=crop" },
+          { text: "Inside the train, I find a seat or hold onto the handrail.", img: "https://images.unsplash.com/photo-1508873696983-2df515122519?w=600&auto=format&fit=crop" },
+          { text: "The train moves smoothly along the track.", img: "https://images.unsplash.com/photo-1517649763962-0c623266010b?w=600&auto=format&fit=crop" },
+          { text: "I can wear my headphones if the train sounds loud.", img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop" },
+          { text: "Riding the train is safe and fun!", img: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&auto=format&fit=crop" }
+        ]
+      },
+      {
+        id: 'tmpl_haircut',
+        title: 'Getting a Haircut',
+        scenario: 'Getting a Haircut',
+        category: 'Routine',
+        pages: [
+          { text: "When my hair gets long, it is time to visit the barber or salon.", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop" },
+          { text: "I sit calmly in the barber chair. They put a cape over me.", img: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&auto=format&fit=crop" },
+          { text: "The spray bottle feels like cool gentle rain on my head.", img: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600&auto=format&fit=crop" },
+          { text: "The scissors make a gentle snip-snip sound.", img: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=600&auto=format&fit=crop" },
+          { text: "If the electric clippers buzz, I can take deep calm breaths.", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop" },
+          { text: "I keep my head still so the barber can work safely.", img: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&auto=format&fit=crop" },
+          { text: "When we are done, the cape comes off.", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop" },
+          { text: "I look handsome and neat!", img: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop" }
+        ]
+      }
+    ];
+
+    // Lifecycle Init
+    document.addEventListener("DOMContentLoaded", () => {
+      loadLocalLibrary();
+      renderTemplates();
+
+      // Check Saved Session
+      const savedUser = localStorage.getItem('social_user');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateAuthHeader();
+      }
+
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          currentUser = { uid: user.uid, email: user.email, isGuest: false };
+          localStorage.setItem('social_user', JSON.stringify(currentUser));
+          updateAuthHeader();
+          syncFirebaseLibrary();
+        }
+      });
+
+      renderRecentHomeStories();
+    });
+
+    // Navigation & Views
+    function showView(viewId) {
+      document.querySelectorAll('.app-view').forEach(el => el.classList.add('hidden'));
+      const target = document.getElementById(`view-${viewId}`);
+      if (target) target.classList.remove('hidden');
+
+      window.scrollTo(0, 0);
+
+      if (viewId === 'library') renderLibrary();
+      if (viewId === 'home') renderRecentHomeStories();
+    }
+
+    // Auth Handlers
+    function switchAuthTab(mode) {
+      authTabMode = mode;
+      document.getElementById('tab-btn-login').className = mode === 'login' ? 'flex-1 py-2 text-xs font-bold rounded-xl transition bg-white dark:bg-slate-800 shadow text-brand-600' : 'flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500';
+      document.getElementById('tab-btn-register').className = mode === 'register' ? 'flex-1 py-2 text-xs font-bold rounded-xl transition bg-white dark:bg-slate-800 shadow text-brand-600' : 'flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-500';
+      document.getElementById('btn-auth-submit').innerText = mode === 'login' ? 'Sign In' : 'Register New Account';
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value;
+      const pass = document.getElementById('auth-password').value;
+      const errBox = document.getElementById('auth-error');
+      errBox.classList.add('hidden');
+
+      if (authTabMode === 'login') {
+        auth.signInWithEmailAndPassword(email, pass).catch(err => {
+          errBox.innerText = err.message;
+          errBox.classList.remove('hidden');
+        });
+      } else {
+        auth.createUserWithEmailAndPassword(email, pass).catch(err => {
+          errBox.innerText = err.message;
+          errBox.classList.remove('hidden');
+        });
+      }
+    }
+
+    function loginGuest() {
+      currentUser = { uid: 'guest_' + Date.now(), email: 'Guest User', isGuest: true };
+      localStorage.setItem('social_user', JSON.stringify(currentUser));
+      updateAuthHeader();
+      showView('home');
+    }
+
+    function logout() {
+      auth.signOut();
+      currentUser = null;
+      localStorage.removeItem('social_user');
+      updateAuthHeader();
+      showView('home');
+    }
+
+    function updateAuthHeader() {
+      const container = document.getElementById('auth-header-btn');
+      if (currentUser) {
+        container.innerHTML = `
+          <button onclick="logout()" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs">
+            <i class="fa-solid fa-user-circle me-1 text-brand-500"></i> ${currentUser.email.split('@')[0]} (Sign Out)
+          </button>
+        `;
+      } else {
+        container.innerHTML = `
+          <button onclick="showView('login')" class="px-3 py-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs shadow">
+            Sign In
+          </button>
+        `;
+      }
+    }
+
+    // AI Story Generator Logic
+    function handlePresetSituationChange(val) {
+      const customInput = document.getElementById('gen-situation-custom');
+      if (val === 'CUSTOM') {
+        customInput.classList.remove('hidden');
+        customInput.required = true;
+      } else {
+        customInput.classList.add('hidden');
+        customInput.required = false;
+      }
+    }
+
+    function handleGenerateAIStory(e) {
+      e.preventDefault();
+      const name = document.getElementById('gen-child-name').value || 'Adam';
+      const age = document.getElementById('gen-child-age').value;
+      const preset = document.getElementById('gen-situation-preset').value;
+      const scenario = preset === 'CUSTOM' ? document.getElementById('gen-situation-custom').value : preset;
+      const pagesCount = parseInt(document.getElementById('gen-story-pages').value);
+      const artStyle = document.getElementById('gen-art-style').value;
+
+      const submitBtn = document.getElementById('btn-submit-generator');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating Visual Social Story...';
+
+      setTimeout(() => {
+        const generatedStory = buildCarolGraySocialStory(name, age, scenario, pagesCount, artStyle);
+        saveStoryToLibrary(generatedStory);
+        displayStory(generatedStory);
+
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate AI Social Story & Visuals';
+      }, 1200);
+    }
+
+    // Carol Gray Compliant Narrative Engine
+    function buildCarolGraySocialStory(name, age, scenario, pagesCount, artStyle) {
+      const isLocal = scenario.toLowerCase().includes('klinik') || scenario.toLowerCase().includes('lrt') || scenario.toLowerCase().includes('mosque') || scenario.toLowerCase().includes('pasar');
+      
+      const sentences = [
+        `My name is ${name} and I am ${age} years old.`,
+        `Sometimes, I go to ${scenario.toLowerCase()}.`,
+        `When visiting ${scenario.toLowerCase()}, there might be other people and new sights.`,
+        `My parents and teachers are with me to keep me safe.`,
+        `It is okay to feel curious or a little excited.`,
+        `If noises feel loud, I can take deep calm breaths or ask for a pause.`,
+        `I will follow the gentle directions and wait patiently for my turn.`,
+        `When we finish ${scenario.toLowerCase()}, I can enjoy a nice reward.`,
+        `My family is very proud of me when I try my best!`,
+        `I am brave, calm, and safe!`
+      ];
+
+      const selectedSentences = sentences.slice(0, pagesCount);
+      const storyPages = selectedSentences.map((text, idx) => {
+        const promptText = encodeURIComponent(`${artStyle}, ${scenario}, ${text}`);
+        const seed = Math.floor(Math.random() * 90000) + 1000;
+        return {
+          text: text,
+          img: `https://image.pollinations.ai/prompt/${promptText}?width=512&height=384&nologo=true&seed=${seed}`
+        };
+      });
+
+      return {
+        id: 'story_' + Date.now(),
+        title: `${name}'s Social Story: ${scenario}`,
+        childName: name,
+        scenario: scenario,
+        createdAt: new Date().toLocaleDateString(),
+        pages: storyPages,
+        isFav: false
+      };
+    }
+
+    // Display Story Reader
+    function displayStory(story) {
+      currentStory = story;
+      document.getElementById('display-story-title').innerText = story.title;
+      document.getElementById('display-badge-scenario').innerText = story.scenario;
+      document.getElementById('display-story-meta').innerText = `Child: ${story.childName} • Created on ${story.createdAt}`;
+
+      const container = document.getElementById('display-pages-container');
+      container.innerHTML = '';
+
+      story.pages.forEach((page, idx) => {
+        const cardHtml = `
+          <div class="story-card-page bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm flex flex-col md:flex-row">
+            <div class="md:w-1/2 bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-2">
+              <img src="${page.img}" alt="Visual support" class="w-full h-64 md:h-72 object-cover rounded-2xl" onerror="this.src='https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop'">
+            </div>
+            <div class="md:w-1/2 p-6 flex flex-col justify-between">
+              <div class="space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-brand-500">Page ${idx + 1} of ${story.pages.length}</span>
+                <p class="text-xl font-bold text-slate-800 dark:text-slate-100 leading-relaxed page-sentence-text">${page.text}</p>
+              </div>
+              <div class="pt-4 flex gap-2 no-print">
+                <button onclick="speakText('${page.text.replace(/'/g, "\\'")}')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-xl text-xs flex items-center gap-1">
+                  <i class="fa-solid fa-volume-high"></i> Read Page
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', cardHtml);
+      });
+
+      updateFavButtonState();
+      showView('story-display');
+    }
+
+    // Library Storage Logic
+    function saveStoryToLibrary(story) {
+      const idx = storiesLibrary.findIndex(s => s.id === story.id);
+      if (idx >= 0) storiesLibrary[idx] = story;
+      else storiesLibrary.unshift(story);
+
+      localStorage.setItem('social_stories_db', JSON.stringify(storiesLibrary));
+
+      if (currentUser && !currentUser.isGuest) {
+        try {
+          db.ref(`users/${currentUser.uid}/stories/${story.id}`).set(story);
+        } catch(e) { console.warn("Firebase save sync warning", e); }
+      }
+    }
+
+    function loadLocalLibrary() {
+      const data = localStorage.getItem('social_stories_db');
+      if (data) {
+        try { storiesLibrary = JSON.parse(data); } catch(e) { storiesLibrary = []; }
+      }
+    }
+
+    function syncFirebaseLibrary() {
+      if (currentUser && !currentUser.isGuest) {
+        db.ref(`users/${currentUser.uid}/stories`).once('value', snapshot => {
+          const val = snapshot.val();
+          if (val) {
+            storiesLibrary = Object.values(val);
+            localStorage.setItem('social_stories_db', JSON.stringify(storiesLibrary));
+            renderRecentHomeStories();
+          }
+        });
+      }
+    }
+
+    function renderLibrary() {
+      const container = document.getElementById('library-container');
+      container.innerHTML = '';
+
+      if (storiesLibrary.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-10 text-slate-400 text-xs">No saved stories yet. Create your first story using the AI generator!</div>';
+        return;
+      }
+
+      storiesLibrary.forEach(story => {
+        const cardHtml = `
+          <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-5 space-y-3 flex flex-col justify-between shadow-sm hover:border-brand-500 transition">
+            <div>
+              <span class="px-2.5 py-1 bg-brand-50 dark:bg-brand-900/40 text-brand-600 dark:text-brand-300 rounded-full text-[10px] font-bold">${story.scenario}</span>
+              <h4 class="font-bold text-sm text-slate-900 dark:text-white mt-2">${story.title}</h4>
+              <p class="text-xs text-slate-400 mt-1">${story.pages.length} Pages • Child: ${story.childName}</p>
+            </div>
+            <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+              <button onclick="openStoryFromLibrary('${story.id}')" class="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition">Open</button>
+              <button onclick="deleteStoryFromLibrary('${story.id}')" class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl text-xs"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    function renderRecentHomeStories() {
+      const container = document.getElementById('home-recent-stories');
+      container.innerHTML = '';
+      const recents = storiesLibrary.slice(0, 2);
+
+      if (recents.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-4 text-slate-400 text-xs">No recent stories created yet.</div>';
+        return;
+      }
+
+      recents.forEach(story => {
+        const cardHtml = `
+          <div onclick="openStoryFromLibrary('${story.id}')" class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 hover:border-brand-500 cursor-pointer transition flex items-center justify-between">
+            <div>
+              <div class="font-bold text-sm text-slate-900 dark:text-white">${story.title}</div>
+              <div class="text-xs text-slate-400">${story.pages.length} Pages • ${story.scenario}</div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-300"></i>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    function openStoryFromLibrary(id) {
+      const target = storiesLibrary.find(s => s.id === id);
+      if (target) displayStory(target);
+    }
+
+    function deleteStoryFromLibrary(id) {
+      if (confirm("Delete this story permanently?")) {
+        storiesLibrary = storiesLibrary.filter(s => s.id !== id);
+        localStorage.setItem('social_stories_db', JSON.stringify(storiesLibrary));
+        renderLibrary();
+      }
+    }
+
+    // Templates Module Render
+    function renderTemplates() {
+      const container = document.getElementById('templates-grid');
+      container.innerHTML = '';
+
+      PRESET_TEMPLATES.forEach(tmpl => {
+        const cardHtml = `
+          <div class="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-5 space-y-3 flex flex-col justify-between shadow-sm">
+            <div>
+              <span class="px-2.5 py-1 bg-pastel-green dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold">${tmpl.category}</span>
+              <h4 class="font-bold text-sm text-slate-900 dark:text-white mt-2">${tmpl.title}</h4>
+              <p class="text-xs text-slate-400 mt-1">${tmpl.pages.length} pre-formatted slides</p>
+            </div>
+            <button onclick="useTemplate('${tmpl.id}')" class="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl text-xs transition">
+              Use Template
+            </button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    function useTemplate(tmplId) {
+      const tmpl = PRESET_TEMPLATES.find(t => t.id === tmplId);
+      if (!tmpl) return;
+
+      const newStory = {
+        id: 'story_' + Date.now(),
+        title: tmpl.title,
+        childName: 'Adam',
+        scenario: tmpl.scenario,
+        createdAt: new Date().toLocaleDateString(),
+        pages: tmpl.pages,
+        isFav: false
+      };
+
+      saveStoryToLibrary(newStory);
+      displayStory(newStory);
+    }
+
+    // Manual Story Builder
+    function addBuilderPage(text = '', img = '') {
+      const list = document.getElementById('builder-pages-list');
+      const idx = list.children.length;
+      const html = `
+        <div class="builder-page-item p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+          <div class="flex justify-between items-center text-xs font-bold text-slate-500">
+            <span>Slide #${idx + 1}</span>
+            <button onclick="this.closest('.builder-page-item').remove()" class="text-rose-500">Delete Slide</button>
+          </div>
+          <input type="text" class="builder-text w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-sm" placeholder="Page sentence text..." value="${text}">
+          <input type="text" class="builder-img w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-xs" placeholder="Image URL (Unsplash or Pollinations)" value="${img}">
+        </div>
+      `;
+      list.insertAdjacentHTML('beforeend', html);
+    }
+
+    function saveBuilderStory() {
+      const title = document.getElementById('builder-title').value || 'Custom Social Story';
+      const child = document.getElementById('builder-child').value || 'Child';
+
+      const pageElems = document.querySelectorAll('.builder-page-item');
+      if (pageElems.length === 0) { alert("Please add at least one page!"); return; }
+
+      const pages = [];
+      pageElems.forEach(el => {
+        const text = el.querySelector('.builder-text').value;
+        let img = el.querySelector('.builder-img').value;
+        if (!img) img = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop';
+        if (text) pages.push({ text, img });
+      });
+
+      const story = {
+        id: 'story_' + Date.now(),
+        title: title,
+        childName: child,
+        scenario: 'Custom Routine',
+        createdAt: new Date().toLocaleDateString(),
+        pages: pages,
+        isFav: false
+      };
+
+      saveStoryToLibrary(story);
+      displayStory(story);
+    }
+
+    // Text-to-Speech (SpeechSynthesis API)
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) {
+        alert("Text-to-speech is not supported on this browser.");
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = parseFloat(document.getElementById('tts-speed').value) || 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function playTTSSpeech() {
+      if (currentStory) {
+        const fullText = currentStory.pages.map(p => p.text).join('. ');
+        speakText(fullText);
+      }
+    }
+
+    function stopTTSSpeech() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    // Interactive Toolkit Modals Logic
+    function openEmotionModal() {
+      const emotions = [
+        { emoji: '😊', name: 'Happy', desc: 'Feeling glad and smiling.' },
+        { emoji: '😢', name: 'Sad', desc: 'Feeling down, tears might fall.' },
+        { emoji: '😡', name: 'Angry', desc: 'Feeling upset, need a breath.' },
+        { emoji: '😨', name: 'Scared', desc: 'Feeling unsure, need comfort.' },
+        { emoji: '😰', name: 'Anxious', desc: 'Butterflies in tummy.' },
+        { emoji: '😌', name: 'Calm', desc: 'Body is relaxed and soft.' }
+      ];
+
+      const container = document.getElementById('emotions-grid-container');
+      container.innerHTML = '';
+      emotions.forEach(e => {
+        const card = `
+          <button onclick="speakText('${e.name}. ${e.desc}')" class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-2xl text-center hover:bg-amber-50 transition">
+            <span class="text-3xl">${e.emoji}</span>
+            <div class="font-bold text-xs mt-1 dark:text-white">${e.name}</div>
+          </button>
+        `;
+        container.insertAdjacentHTML('beforeend', card);
+      });
+
+      document.getElementById('modal-emotions').classList.remove('hidden');
+    }
+
+    function openVisualCardsModal() {
+      const cues = ['First', 'Then', 'Stop', 'Wait', 'Listen', 'Look', 'Quiet', 'Help', 'Bathroom', 'Drink', 'Eat', 'Finished'];
+      const container = document.getElementById('visual-cards-grid');
+      container.innerHTML = '';
+      cues.forEach(c => {
+        const card = `
+          <button onclick="speakText('${c}')" class="p-3 border-2 border-brand-200 dark:border-slate-700 rounded-2xl text-center font-extrabold text-sm hover:bg-brand-50 dark:hover:bg-slate-700 text-brand-700 dark:text-brand-300">
+            ${c}
+          </button>
+        `;
+        container.insertAdjacentHTML('beforeend', card);
+      });
+      document.getElementById('modal-visual-cards').classList.remove('hidden');
+    }
+
+    function openTokenBoardModal() {
+      document.getElementById('modal-token-board').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    let tokenStarsState = [false, false, false, false, false];
+    function toggleStar(idx) {
+      tokenStarsState[idx] = !tokenStarsState[idx];
+      const starBtns = document.querySelectorAll('#token-stars-box button');
+      starBtns.forEach((btn, i) => {
+        if (i <= idx) btn.className = "text-4xl text-amber-400 transition transform scale-110";
+        else btn.className = "text-4xl text-slate-300 dark:text-slate-700 transition transform hover:scale-110";
+      });
+
+      if (idx === 4) {
+        document.getElementById('token-congrats').classList.remove('hidden');
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+      } else {
+        document.getElementById('token-congrats').classList.add('hidden');
+      }
+    }
+
+    // Sharing & Favorites
+    function toggleFavoriteStory() {
+      if (currentStory) {
+        currentStory.isFav = !currentStory.isFav;
+        saveStoryToLibrary(currentStory);
+        updateFavButtonState();
+      }
+    }
+
+    function updateFavButtonState() {
+      const btn = document.getElementById('btn-story-fav');
+      if (currentStory && currentStory.isFav) {
+        btn.innerHTML = '<i class="fa-solid fa-heart text-rose-500"></i>';
+      } else {
+        btn.innerHTML = '<i class="fa-regular fa-heart"></i>';
+      }
+    }
+
+    function shareWhatsAppStory() {
+      if (currentStory) {
+        const text = `*Social Story for ${currentStory.childName}: ${currentStory.title}*\n\n` +
+          currentStory.pages.map((p, i) => `${i+1}. ${p.text}`).join('\n');
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+      }
+    }
+
+    // Accessibility Toggles
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      document.getElementById('dark-icon').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+
+    function toggleDyslexiaMode() {
+      document.body.classList.toggle('dyslexia-mode');
+    }
+  </script>
+</body>
+</html>
